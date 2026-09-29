@@ -63,12 +63,12 @@ export default function App() {
         {!c.state ? (
           !c.loadError && <p className="muted">Reading contract state…</p>
         ) : (
-          <>
+          <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }} disabled={!wallet.signer || !!wallet.error}>
             {tab === "owner" && <OwnerView {...props} />}
             {tab === "guardian" && <GuardianView {...props} />}
             {tab === "recovery" && <RecoveryView {...props} />}
             {tab === "history" && <HistoryView {...props} />}
-          </>
+          </fieldset>
         )}
       </main>
       <StatusBar state={c.state} deployment={DEPLOYMENT} />

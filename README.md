@@ -25,7 +25,7 @@ GuardianVault's rules work like a spare house key held by trusted neighbours:
 4. The change only happens after a **3-day waiting period**. If it is a trick and the real owner still has their key, they can **cancel** it during those 3 days.
 5. After the 3 days, **only the new owner** can finish the recovery. The old key then stops working.
 
-Every rule is enforced by the contract itself, so no person or company has to be trusted.
+The contract enforces these rules. Recovery still depends on trusting the selected guardians: two colluding guardians can authorize a takeover if the owner cannot cancel it.
 
 ### The roles
 
@@ -107,6 +107,8 @@ Where the frontend decides who you are:
 | Metric | Result |
 |---|---|
 | Automated tests | **31 / 31 passing** (`reports/test-output.txt`) |
+| Frontend regression tests | **11 / 11 passing** (`npm run test:frontend`) |
+| Frontend production build | Passes (`npm run build:frontend`) |
 | Security defence tests (plan §5.1) | **7 / 7 attacks blocked**, plus 1 full successful recovery |
 | Edge-case tests (plan §5.2) | 14 passing |
 | Coverage — `GuardianVault.sol` | **100%** statements, lines, functions · 97% branches |
@@ -142,7 +144,7 @@ docs/        Screenshots of the working UI
 
 ## Getting started (Windows PowerShell / macOS / Linux)
 
-Requires **Node.js 18 or newer** (tested on Node 20, 22 and 24). The first compile downloads the Solidity compiler, so an internet connection is needed once.
+Use **Node.js 22.12 or newer in the Node 22 LTS series** (verified here with 22.18.0). The first compile downloads the Solidity compiler, so an internet connection is needed once.
 
 Every command below is in its own box. Click the copy icon on a box, paste it into PowerShell and press Enter. Run all commands from the project folder (the one containing `package.json`).
 
@@ -160,7 +162,7 @@ Install the website:
 npm run frontend:install
 ```
 
-`npm install` prints deprecation and "vulnerabilities" warnings from Hardhat 2's development tooling. They only affect local development tools. **Do not run `npm audit fix --force`**: it upgrades Hardhat to an incompatible major version.
+`npm install` reports advisories in the Hardhat 2 development dependency tree. These remain unresolved; their impact has not been fully assessed. Avoid `npm audit fix --force`, which can introduce incompatible major versions. The frontend dependency installation currently reports zero vulnerabilities.
 
 ### Step 2 - Compile and test
 
@@ -181,6 +183,21 @@ Optional, the coverage report:
 ```powershell
 npm run coverage
 ```
+
+Verify wallet network changes, offline recovery, and the confirmed-block countdown:
+
+```powershell
+npm run test:frontend
+```
+
+Build the frontend for production:
+
+```powershell
+npm run build:frontend
+```
+
+On PowerShell systems that block `npm.ps1`, use `npm.cmd` in place of `npm`.
+See [the latest verification record](reports/implementation-verification.md) for results and limits.
 
 ### Step 3 - Run the app (open 3 PowerShell windows)
 
@@ -218,11 +235,21 @@ The UI has an **"Act as"** switcher that signs with the Hardhat node's built-in 
 
 **MetaMask (optional):** add network *Hardhat Local* (RPC `http://127.0.0.1:8545`, chain ID `31337`), import accounts 0–5 using the private keys printed by `npm run node`, then click **MetaMask** in the header. After restarting the node, use MetaMask → Settings → Advanced → *Clear activity tab data* to reset nonces.
 
+Changing MetaMask's network or disconnecting clears the active signer and disables
+transaction controls until a valid local account is available. The app checks the
+wallet chain and account again before each payment or recovery transaction.
+
+The countdown uses only the latest confirmed block timestamp. It stays still when
+the local node has not mined a new block; changing the computer clock does not
+unlock recovery. An offline node or missing deployment clears displayed contract
+state. Polling retries automatically, including when the node returns at the same
+block height.
+
 ### Troubleshooting
 
 | Message | Fix |
 |---|---|
-| `running scripts is disabled on this system` (PowerShell) | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| `running scripts is disabled on this system` (PowerShell) | Use `npm.cmd` instead of `npm`; no execution-policy change is required |
 | Red banner: *No contract at the configured address* | The node was restarted; run `npm run deploy` and refresh |
 | Red banner: *Cannot reach the local Hardhat node* | Start `npm run node` (Terminal 1) |
 | `port 8545 already in use` | An old node is still running; close it |

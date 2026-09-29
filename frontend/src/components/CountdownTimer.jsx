@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { fmtDuration } from "../utils/formatters";
 
 /**
@@ -6,13 +5,7 @@ import { fmtDuration } from "../utils/formatters";
  * so an evm_increaseTime + evm_mine jump is reflected immediately.
  */
 export function useChainNow(state) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => tick((x) => x + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-  if (!state) return 0;
-  return state.chainTime + Math.floor((Date.now() - state.fetchedAt) / 1000);
+  return state?.chainTime ?? 0;
 }
 
 export default function CountdownTimer({ state, delay }) {
@@ -31,7 +24,7 @@ export default function CountdownTimer({ state, delay }) {
       <div className="bar" aria-label={`${elapsedPct.toFixed(0)}% of waiting period elapsed`}>
         <div className={`bar-fill ${remaining === 0 ? "green" : "yellow"}`} style={{ width: `${elapsedPct}%` }} />
       </div>
-      <p className="muted small">{elapsedPct.toFixed(0)}% of the 3-day time-lock elapsed (measured in block time)</p>
+      <p className="muted small">{elapsedPct.toFixed(0)}% elapsed at the latest confirmed block. Updates when a new block is mined.</p>
     </div>
   );
 }

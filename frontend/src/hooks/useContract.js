@@ -3,6 +3,18 @@ import { Contract } from "ethers";
 import VaultAbi from "../abi/GuardianVault.json";
 import SimpleAbi from "../abi/SimpleWallet.json";
 import { parseError } from "../utils/formatters";
+import { LOCAL_CHAIN_ID } from "./useWalletConnect";
+
+export async function validateSigner(signer) {
+  if (!signer) throw new Error("Connect a wallet before sending a transaction.");
+  const chainId = await signer.provider.send("eth_chainId", []);
+  if (Number(chainId) !== LOCAL_CHAIN_ID) throw new Error("Wrong network. Switch to Hardhat Local (31337).");
+  const accounts = await signer.provider.send("eth_accounts", []);
+  const address = await signer.getAddress();
+  if (!accounts.some((account) => account.toLowerCase() === address.toLowerCase())) {
+    throw new Error("Wallet account changed. Reconnect before sending a transaction.");
+  }
+}
 
 const EVENT_NAMES = [
   "Deposited",
@@ -28,75 +40,88 @@ export function useContract(readProvider, signer, deployment) {
   const [loadError, setLoadError] = useState(null);
   const [pending, setPending] = useState(null);
   const [lastResult, setLastResult] = useState(null);
-  const lastBlock = useRef(-1);
+  const generation = useRef(0);
+  const inFlight = useRef(null);
 
-  const refresh = useCallback(async () => {
-    if (!vault) return;
-    try {
-      const code = await readProvider.getCode(deployment.guardianVault);
-      if (code === "0x") {
-        setLoadError("No contract at the configured address. The node was probably restarted — run scripts/deploy.js again.");
-        return;
+  const refresh = useCallback(() => {
+    if (!vault) return Promise.resolve(false);
+    if (inFlight.current) return inFlight.current;
+    const ticket = generation.current;
+    const task = (async () => {
+      try {
+        if (Number(await readProvider.send("eth_chainId", [])) !== LOCAL_CHAIN_ID) throw new Error("Expected local chain ID 31337");
+        const block = await readProvider.getBlock("latest");
+        if (!block) throw new Error("Latest block is unavailable");
+        const atBlock = { blockTag: block.number };
+        const code = await readProvider.getCode(deployment.guardianVault, block.number);
+        if (code === "0x") {
+          throw new Error("No contract at the configured address. Redeploy after restarting the node.");
+        }
+        const [owner, balance, guardians, r] = await Promise.all([
+          vault.owner(atBlock),
+          vault.getBalance(atBlock),
+          vault.getGuardians(atBlock),
+          vault.getRecoveryDetails(atBlock),
+        ]);
+        const approvals = await Promise.all(guardians.map((g) => vault.hasApprovedCurrent(g, atBlock)));
+        let simpleState = null;
+        if (simple) {
+          const [sOwner, sBal] = await Promise.all([simple.owner(atBlock), simple.getBalance(atBlock)]);
+          simpleState = { owner: sOwner, balance: sBal };
+        }
+        if (ticket !== generation.current) return false;
+        setState({
+          owner,
+          balance,
+          guardians: [...guardians],
+          approvals,
+          recovery: {
+            proposedOwner: r.proposedOwner,
+            approvalCount: Number(r.approvalCount),
+            executionTime: Number(r.executionTime),
+            active: r.active,
+            requestId: Number(r.requestId),
+          },
+          chainTime: block.timestamp,
+          blockNumber: block.number,
+          simple: simpleState,
+        });
+        setLoadError(null);
+        return true;
+      } catch (e) {
+        if (ticket !== generation.current) return false;
+        setState(null);
+        setLoadError(`Cannot read the contract (${parseError(e)}). Is "npx hardhat node" running?`);
+        return false;
       }
-      const [owner, balance, guardians, r, block] = await Promise.all([
-        vault.owner(),
-        vault.getBalance(),
-        vault.getGuardians(),
-        vault.getRecoveryDetails(),
-        readProvider.getBlock("latest"),
-      ]);
-      const approvals = await Promise.all(guardians.map((g) => vault.hasApprovedCurrent(g)));
-      let simpleState = null;
-      if (simple) {
-        const [sOwner, sBal] = await Promise.all([simple.owner(), simple.getBalance()]);
-        simpleState = { owner: sOwner, balance: sBal };
-      }
-      setState({
-        owner,
-        balance,
-        guardians: [...guardians],
-        approvals,
-        recovery: {
-          proposedOwner: r.proposedOwner,
-          approvalCount: Number(r.approvalCount),
-          executionTime: Number(r.executionTime),
-          active: r.active,
-          requestId: Number(r.requestId),
-        },
-        chainTime: block.timestamp,
-        blockNumber: block.number,
-        fetchedAt: Date.now(),
-        simple: simpleState,
-      });
-      setLoadError(null);
-    } catch (e) {
-      setLoadError(`Cannot read the contract (${parseError(e)}). Is "npx hardhat node" running?`);
-    }
+    })();
+    inFlight.current = task;
+    task.finally(() => { if (inFlight.current === task) inFlight.current = null; });
+    return task;
   }, [vault, simple, readProvider, deployment]);
 
   useEffect(() => {
     if (!vault) return;
+    generation.current++;
+    inFlight.current = null;
+    setState(null);
     refresh();
-    const id = setInterval(async () => {
-      try {
-        const n = await readProvider.getBlockNumber();
-        if (n !== lastBlock.current) {
-          lastBlock.current = n;
-          refresh();
-        }
-      } catch {
-        /* node offline — refresh() reports it */
-      }
-    }, 1200);
-    return () => clearInterval(id);
+    // Retry even at the same height: a node can disconnect or reset without a new block.
+    const id = setInterval(refresh, 1500);
+    return () => {
+      clearInterval(id);
+      generation.current++;
+      inFlight.current = null;
+    };
   }, [vault, readProvider, refresh]);
 
   /** Send a state-changing call. Reverts are surfaced as readable reasons, never swallowed. */
   const send = useCallback(
     async (method, args = [], overrides = {}, label = method) => {
-      if (!signer || !vault) return false;
       setPending(method);
       try {
+        if (!vault || !state || loadError) throw new Error("Contract state unavailable. Wait for reconnection.");
+        await validateSigner(signer);
         const tx = await vault.connect(signer)[method](...args, overrides);
         const receipt = await tx.wait();
         await refresh();
@@ -109,14 +134,15 @@ export function useContract(readProvider, signer, deployment) {
         setPending(null);
       }
     },
-    [signer, vault, refresh]
+    [signer, vault, refresh, state, loadError]
   );
 
   const sendToSimple = useCallback(
     async (method, args = [], label = method) => {
-      if (!signer || !simple) return;
       setPending(`simple:${method}`);
       try {
+        if (!simple || !state || loadError) throw new Error("Contract state unavailable. Wait for reconnection.");
+        await validateSigner(signer);
         await (await simple.connect(signer)[method](...args)).wait();
         setLastResult({ ok: true, label, detail: "Confirmed", at: Date.now() });
       } catch (e) {
@@ -126,7 +152,7 @@ export function useContract(readProvider, signer, deployment) {
         refresh();
       }
     },
-    [signer, simple, refresh]
+    [signer, simple, refresh, state, loadError]
   );
 
   const fetchHistory = useCallback(async () => {

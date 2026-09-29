@@ -7,6 +7,8 @@
     "test": "hardhat test",
     "test:gas": "hardhat test test/GasAnalysis.test.js",
     "coverage": "hardhat coverage",
+    "test:frontend": "npm --prefix frontend test",
+    "build:frontend": "npm --prefix frontend run build",
     "node": "hardhat node",
     "deploy": "hardhat run scripts/deploy.js --network localhost",
     "fast-forward": "hardhat run scripts/fast-forward.js --network localhost",
