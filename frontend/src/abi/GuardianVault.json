@@ -1,0 +1,484 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address[3]",
+        "name": "_guardians",
+        "type": "address[3]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Deposited",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldGuardian",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newGuardian",
+        "type": "address"
+      }
+    ],
+    "name": "GuardianReplaced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[3]",
+        "name": "guardians",
+        "type": "address[3]"
+      }
+    ],
+    "name": "GuardianVaultDeployed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "guardian",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposedOwner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "approvalCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "RecoveryApproved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "cancelledBy",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "RecoveryCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "RecoveryExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "guardian",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposedOwner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "RecoveryProposed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Transferred",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "RECOVERY_DELAY",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "REQUIRED_APPROVALS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "approveRecovery",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "cancelRecovery",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentRequestId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "executeRecovery",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getGuardians",
+    "outputs": [
+      {
+        "internalType": "address[3]",
+        "name": "",
+        "type": "address[3]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getRecoveryDetails",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "proposedOwner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "approvalCount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "executionTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "active",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "guardianApprovedRequestId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "guardians",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "guardian",
+        "type": "address"
+      }
+    ],
+    "name": "hasApprovedCurrent",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isGuardian",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "proposeRecovery",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "recoveryRequest",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "proposedOwner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "approvalCount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "executionTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "active",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "oldGuardian",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "newGuardian",
+        "type": "address"
+      }
+    ],
+    "name": "replaceGuardian",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "transfer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
+  }
+]

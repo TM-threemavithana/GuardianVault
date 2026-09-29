@@ -15,6 +15,7 @@
 8. [Development Workflow](#8-development-workflow)
 9. [Presentation Demo Script](#9-presentation-demo-script)
 10. [Known Limitations](#10-known-limitations)
+11. [Implementation Results (v4)](#11-implementation-results-v4)
 
 ---
 
@@ -986,6 +987,7 @@ GuardianVault/
 | **Lost owner key + malicious recovery** | An owner who truly lost their key cannot cancel. The 3-day delay only postpones the takeover; it does not prevent it. | By design — social recovery fundamentally requires placing trust in the chosen guardians and keeping their keys secure. |
 | **Guardian replacement requires owner access** | If the owner loses their key, they cannot replace guardians | Future: allow guardians to collectively vote on guardian replacement |
 | **Fixed 2-of-3 threshold** | Always requires exactly 2 of 3 | Future: make configurable (M-of-N) |
+| **Stolen (not lost) owner key** | [v4] A thief with the owner key can transfer funds immediately and can also cancel recoveries or replace guardians. Social recovery protects against key *loss*, not key *theft*. | Future: daily spending limit, guardian veto on guardian changes, hardware-wallet owner key |
 | **Local testnet only** | Not deployed to a public testnet | Future: deploy to Sepolia |
 | **No ERC-4337 integration** | Standalone contract wallet | Future: integrate with account abstraction infrastructure |
 | **Single wallet per contract** | Each deployment is one wallet | Future: factory pattern for multi-wallet deployment |
@@ -995,3 +997,70 @@ GuardianVault/
 
 > [!NOTE]
 > **This is the corrected master reference.** The next step is to implement the contract, run the tests, collect actual results, build the frontend, and only then report outcomes as evidenced facts.
+
+---
+
+## 11. Implementation Results (v4)
+
+> [!NOTE]
+> Everything below was produced by running the code in this repository. Raw outputs are in `reports/`.
+
+### 11.1 Test results — `npx hardhat test`
+
+**31 passing, 0 failing.**
+
+| Plan item | Result |
+|---|---|
+| Test 1 — outsider cannot transfer | Blocked: `Not the owner` |
+| Test 2 — outsider cannot propose | Blocked: `Not a guardian` |
+| Test 3 — one guardian cannot meet threshold | Blocked: `Approval threshold not met` (even 30 days later) |
+| Test 4 — same guardian cannot approve twice | Blocked: `Already approved this request` |
+| Test 5 — no execution before delay | Blocked: `Waiting period not elapsed` (checked at 0 s and 10 s before expiry) |
+| Test 6 — owner can cancel | Passed; next request restarts at 1 approval, request #2 |
+| Test 7 — cancelled approvals not reusable | Passed; request #2 starts at 1/2, old approver must re-approve |
+| Test 8 — full successful recovery | Passed; new owner transfers, old owner is rejected |
+| §5.2 edge cases (all 10 + 4 extra) | All passing |
+| §5.3 SimpleWallet vs GuardianVault | Passed; plain wallet funds stay locked, vault funds recovered |
+
+Extra tests added beyond the plan: constructor validation, approval for a mismatched owner, non-owner cancel, transfer input validation, invalid guardian replacements, and "a 3rd approval does not reset the time-lock".
+
+### 11.2 Coverage — `npx hardhat coverage`
+
+| File | Statements | Branches | Functions | Lines |
+|---|---:|---:|---:|---:|
+| GuardianVault.sol | 100% | 97.06% | 100% | 100% |
+| SimpleWallet.sol | 100% | 91.67% | 100% | 100% |
+
+### 11.3 Gas (optimizer on, 200 runs)
+
+| Operation | GuardianVault | SimpleWallet | Overhead |
+|---|---:|---:|---:|
+| Deployment | 1,236,780 | 281,791 | +338.9% |
+| Deposit ETH | 22,491 | 22,491 | +0.0% |
+| Transfer ETH | 35,133 | 35,084 | +0.1% |
+| Propose recovery | 165,686 | — | — |
+| Approve recovery | 82,122 | — | — |
+| Cancel recovery | 27,311 | — | — |
+| Replace guardian | 60,993 | — | — |
+| Execute recovery | 34,798 | — | — |
+
+**Trade-off discussion.** Recoverability costs a one-time ~955k extra gas at deployment and practically nothing on day-to-day use (deposit +0%, transfer +0.1%). Propose is the most expensive call because it writes a fresh struct to storage (several cold `SSTORE`s); the remaining recovery calls are cheap and only happen in an emergency. The gas overhead is the price of recoverability.
+
+### 11.4 End-to-end UI verification
+
+The §9 demo script was run through the real React UI in a headless browser against a live Hardhat node: all 13 transactional steps produced the expected success or the exact expected revert reason, the History tab listed the resulting events, and no browser errors occurred. Owner-cancel, anti-replay (request #2 at 1/2) and guardian replacement with auto-cancel were also verified through the UI.
+
+### 11.5 Deviations from v3 (and why)
+
+| Change | Reason |
+|---|---|
+| `transfer` has separate messages (`Amount must be greater than zero`, `Insufficient balance`) | Clearer errors in the UI and tests |
+| Added view `hasApprovedCurrent(address)` | Lets the Guardian view show who has approved without replaying events |
+| "Execute recovery" button stays clickable during the time-lock (labelled *time-locked*) | §4.3 said "disabled", but the §9 demo needs the new owner to *attempt* early execution and show the revert. Security is enforced by the contract, not the button |
+| Owner/guardian actions are never hidden from other accounts | So the attacker scenarios can be demonstrated; each view warns when the current account lacks the role |
+| "Act as" switcher using the node's unlocked accounts, in addition to MetaMask | Removes ~10 MetaMask pop-ups from the 100-second demo; MetaMask still supported |
+| In-app "Advance chain time 3 days" button + `scripts/fast-forward.js` | Performs `evm_increaseTime` + `evm_mine` (per §5.4) without opening a Hardhat console |
+| `deploy.js` also deploys SimpleWallet pre-funded with 5 ETH and writes address + ABI into the frontend | Enables the "without GuardianVault" comparison in the UI, removes the manual ABI copy step (2.4) |
+| Solidity optimizer enabled (200 runs) | Realistic gas figures |
+| Added "stolen owner key" limitation | Honest threat-model boundary |
+

@@ -1,0 +1,10 @@
+node_modules/
+frontend/node_modules/
+frontend/dist/
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain-types/
+.env
+hardhat.sandbox.config.js

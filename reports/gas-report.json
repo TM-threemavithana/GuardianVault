@@ -1,0 +1,50 @@
+[
+  {
+    "operation": "Contract deployment",
+    "guardianVault": 1236780,
+    "simpleWallet": 281791,
+    "overhead": "+338.9%"
+  },
+  {
+    "operation": "Deposit ETH (receive)",
+    "guardianVault": 22491,
+    "simpleWallet": 22491,
+    "overhead": "+0.0%"
+  },
+  {
+    "operation": "Transfer ETH (owner)",
+    "guardianVault": 35133,
+    "simpleWallet": 35084,
+    "overhead": "+0.1%"
+  },
+  {
+    "operation": "Propose recovery",
+    "guardianVault": 165686,
+    "simpleWallet": null,
+    "overhead": "N/A"
+  },
+  {
+    "operation": "Approve recovery",
+    "guardianVault": 82122,
+    "simpleWallet": null,
+    "overhead": "N/A"
+  },
+  {
+    "operation": "Cancel recovery",
+    "guardianVault": 27311,
+    "simpleWallet": null,
+    "overhead": "N/A"
+  },
+  {
+    "operation": "Replace guardian",
+    "guardianVault": 60993,
+    "simpleWallet": null,
+    "overhead": "N/A"
+  },
+  {
+    "operation": "Execute recovery",
+    "guardianVault": 34798,
+    "simpleWallet": null,
+    "overhead": "N/A"
+  }
+]

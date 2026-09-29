@@ -1,0 +1,58 @@
+
+
+  Gas analysis: GuardianVault vs SimpleWallet
+
+    Operation                 GuardianVault   SimpleWallet   Overhead
+    ------------------------  -------------   ------------   --------
+    Contract deployment             1236780         281791    +338.9%
+    Deposit ETH (receive)             22491          22491      +0.0%
+    Transfer ETH (owner)              35133          35084      +0.1%
+    Propose recovery                 165686            N/A        N/A
+    Approve recovery                  82122            N/A        N/A
+    Cancel recovery                   27311            N/A        N/A
+    Replace guardian                  60993            N/A        N/A
+    Execute recovery                  34798            N/A        N/A
+    ✔ measures gas for every operation (517ms)
+
+  GuardianVault
+    Deployment
+      ✔ sets owner, guardians and constants (53ms)
+      ✔ rejects zero-address, duplicate, and owner-as-guardian configurations
+    Security defence tests (plan section 5.1)
+      ✔ Test 1: outsider cannot transfer funds
+      ✔ Test 2: outsider cannot propose recovery
+      ✔ Test 3: one guardian cannot meet the threshold
+      ✔ Test 4: same guardian cannot approve twice
+      ✔ Test 5: recovery cannot execute before the 3-day waiting period
+      ✔ Test 6: owner can cancel an active recovery
+      ✔ Test 7: cancelled approvals cannot be replayed on a new request
+    Functional test
+      ✔ Test 8: full successful recovery transfers ownership
+    Edge cases (plan section 5.2)
+      ✔ cannot propose the zero address
+      ✔ cannot propose the current owner
+      ✔ cannot propose a guardian as the new owner
+      ✔ cannot propose while a recovery is already active
+      ✔ cannot approve a different proposed owner
+      ✔ only the proposed owner can execute
+      ✔ cannot cancel when no recovery is active
+      ✔ non-owner cannot cancel a recovery
+      ✔ deposits work from any address (receive and deposit)
+      ✔ transfer input validation (zero address, zero amount, overdraw)
+      ✔ replacing a guardian auto-cancels an active recovery (40ms)
+      ✔ cannot replace a non-existent guardian or add an invalid one
+      ✔ a replaced guardian can no longer approve
+      ✔ a third approval does not reset the time-lock (77ms)
+    Comparison: SimpleWallet vs GuardianVault (plan section 5.3)
+      ✔ plain wallet funds are locked forever after key loss; GuardianVault recovers them (41ms)
+
+  SimpleWallet (baseline, no recovery)
+    ✔ accepts deposits
+    ✔ accepts explicit deposit() and rejects zero deposits
+    ✔ rejects invalid transfers
+    ✔ lets the owner transfer
+    ✔ blocks non-owners from transferring
+
+
+  31 passing (961ms)
+

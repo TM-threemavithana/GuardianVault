@@ -1,0 +1,21 @@
+{
+  "name": "guardianvault",
+  "version": "1.0.0",
+  "description": "Smart-contract wallet with 2-of-3 guardian-assisted recovery and a 3-day time-lock (EC8204 group project)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:gas": "hardhat test test/GasAnalysis.test.js",
+    "coverage": "hardhat coverage",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "fast-forward": "hardhat run scripts/fast-forward.js --network localhost",
+    "frontend": "npm --prefix frontend run dev",
+    "frontend:install": "npm --prefix frontend install"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
+    "hardhat": "^2.29.1"
+  }
+}
