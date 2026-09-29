@@ -144,36 +144,76 @@ docs/        Screenshots of the working UI
 
 Requires **Node.js 18 or newer** (tested on Node 20, 22 and 24). The first compile downloads the Solidity compiler, so an internet connection is needed once.
 
-```powershell
-# 1. Install
-npm install
-npm run frontend:install
+Every command below is in its own box. Click the copy icon on a box, paste it into PowerShell and press Enter. Run all commands from the project folder (the one containing `package.json`).
 
-# 2. Verify the contracts
-npm run compile
-npm test            # 31 passing, prints the gas table
-npm run coverage    # optional
+### Step 1 - Install
+
+Install the blockchain tools:
+
+```powershell
+npm install
+```
+
+Install the website:
+
+```powershell
+npm run frontend:install
 ```
 
 `npm install` prints deprecation and "vulnerabilities" warnings from Hardhat 2's development tooling. They only affect local development tools. **Do not run `npm audit fix --force`**: it upgrades Hardhat to an incompatible major version.
 
-### Run the app (3 terminals)
+### Step 2 - Compile and test
+
+Compile the smart contracts:
 
 ```powershell
-# Terminal 1 - local blockchain (keep it running)
-npm run node
-
-# Terminal 2 - deploy (writes the contract address + ABI into the frontend)
-npm run deploy
-
-# Terminal 3 - UI
-npm run frontend     # open http://localhost:5173
+npm run compile
 ```
 
-On a fresh chain, the deploy prints `GuardianVault deployed: 0x5FbDB2315678afecb367f032d93F642f64180aa3`.
+Run all tests. Expected: a gas table, then `31 passing`.
 
-> Restarted `npm run node`? The chain is wiped, so run `npm run deploy` again and refresh the page.
+```powershell
+npm test
+```
 
+Optional, the coverage report:
+
+```powershell
+npm run coverage
+```
+
+### Step 3 - Run the app (open 3 PowerShell windows)
+
+**Window 1:** start the local blockchain. Leave this window running.
+
+```powershell
+npm run node
+```
+
+**Window 2:** deploy the contracts. This also connects the website to them automatically.
+
+```powershell
+npm run deploy
+```
+
+On a fresh chain it prints `GuardianVault deployed: 0x5FbDB2315678afecb367f032d93F642f64180aa3`.
+
+**Window 3:** start the website.
+
+```powershell
+npm run frontend
+```
+
+Then open this address in your browser:
+
+```text
+http://localhost:5173
+```
+
+> Restarted the blockchain (Window 1)? It starts empty, so run `npm run deploy` again and refresh the page.
+
+
+```
 ### Switching accounts
 
 The UI has an **"Act as"** switcher that signs with the Hardhat node's built-in accounts, so you can switch between Owner, Guardians, New Owner and Attacker in one click. No MetaMask is needed, which is ideal for a timed demo.
