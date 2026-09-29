@@ -212,8 +212,6 @@ http://localhost:5173
 
 > Restarted the blockchain (Window 1)? It starts empty, so run `npm run deploy` again and refresh the page.
 
-
-```
 ### Switching accounts
 
 The UI has an **"Act as"** switcher that signs with the Hardhat node's built-in accounts, so you can switch between Owner, Guardians, New Owner and Attacker in one click. No MetaMask is needed, which is ideal for a timed demo.
